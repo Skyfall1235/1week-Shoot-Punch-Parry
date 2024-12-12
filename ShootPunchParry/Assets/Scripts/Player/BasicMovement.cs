@@ -7,28 +7,48 @@ public class BasicMovement : NetworkBehaviour
 {
     public Rigidbody rb;
     //define states on movmvent
-    internal enum MovementState
-    {
-        Walk, Slide, Sprint, Strafe, None
-    }
+    
     //define a walk, sprint, and strafe speed
+    [Header("Variable base speed of player")]
     public float walkSpeed, SprintSpeed, StrafeSpeed;
     //define a slide speed
     public float SlideSpeedBonus;
     //define a facing vector
+    [Header("Camera To direction mapping")]
     public Vector3 FacingDirection;
     public float DotProductAllowanceForDirectionalMapping = 0f;
 
     public bool isGrounded = false;
+    [Header("Debugs")]
     public bool ShowDebugs = true;
     public Color DebugCameraColor = Color.white;
     public Color DebugGroundedState = Color.red;
     public Color DebugMovementDirection = Color.blue;
     public Color DebugSpecialMovement = Color.green;
 
+    #region Enablisms
+    public void OnEnable()
+    {
+        rb = GetComponent<Rigidbody>();
+    }
+    public void OnDisable()
+    {
+        
+    }
 
-    internal bool GroundedState;
+    public override void OnNetworkSpawn()
+    {
+        base.OnNetworkSpawn();
+        if (!IsOwner)
+        {
+            //diable the controller if we arent owner
+            this.enabled = false;
+        }
+    }
 
+    #endregion
+
+    #region Application of forces on this object
     public void ApplyexplosionForceOnRigidbody(float forceValue, Vector3 origin)
     { 
     
@@ -38,13 +58,10 @@ public class BasicMovement : NetworkBehaviour
 
     }
 
+    #endregion
+
     internal MovementState DetermineAcccelerationType(MovementActions currentAction)
     {
-        //return MovementState.None;
-        //this method will detemine whether or not, based on
-        //based on the direction the camera is facing relative to the
-        //use dot product for camera dir vs
-        //will need to comput the direction of the camer and the player
         Vector3 dirOfPlayerTravel = Vector3.zero;
         Vector3 DirOfCamera = FacingDirection.normalized;
         float DotOfCameraAndMovement = Vector2.Dot(DirOfCamera, dirOfPlayerTravel);
@@ -70,7 +87,7 @@ public class BasicMovement : NetworkBehaviour
         //use the values we have and the direction the player is giving
     }
 
-    //bonus movment is a side strafe or sprint, slide is sperate as it will interrupt these
+    //bonus movement is a side strafe or sprint, slide is sperate as it will interrupt these
     internal MovementActions ConvertInputToUsableVector(InputActionProperty moveAction, InputActionProperty bonusMovement, InputActionProperty attemptSlide)
     {
         Vector2 movementInput = RetrieveValueFromAction<Vector2>(moveAction);
@@ -84,18 +101,21 @@ public class BasicMovement : NetworkBehaviour
         return actions;
     }
 
-    internal struct MovementActions
-    { 
-        public Vector2 XYaxis;
-        public bool IsattemptingBonusMovement;
-        public bool IsAttemptingSlide;
-        public MovementActions(Vector2 xYaxis, bool isattemptingBonusMovement, bool isAttemptingSlide)
-        {
-            XYaxis = xYaxis;
-            IsattemptingBonusMovement = isattemptingBonusMovement;
-            IsAttemptingSlide = isAttemptingSlide;
-        }
+    /// <summary>
+    /// Retrieves a value of type T from a Unity InputActionProperty.
+    /// </summary>
+    /// <typeparam name="T">The type of the value to retrieve. Must be a struct.</typeparam>
+    /// <param name="actionProperty">The InputActionProperty object containing the value.</param>
+    /// <returns>The value of type T retrieved from the InputActionProperty.</returns>
+    static public T RetrieveValueFromAction<T>(InputActionProperty actionProperty) where T : struct
+    {
+        // retrive the value from the action map
+        T actionValue = actionProperty.action.ReadValue<T>();
+        //return the value
+        return actionValue;
     }
+
+    #region Collision
 
     internal virtual void OnCollisionEnter(Collision collision)
     {
@@ -118,6 +138,9 @@ public class BasicMovement : NetworkBehaviour
         }
     }
 
+    #endregion
+
+    //debugs missing special movement
     private void OnDrawGizmos()
     {
         if(ShowDebugs)
@@ -134,24 +157,23 @@ public class BasicMovement : NetworkBehaviour
             //special movement
         }
     }
-    //leave ready for inheritance
 
-    //dbug
-    //bool for debug lines
-
-    //custom debug code
-
-    /// <summary>
-    /// Retrieves a value of type T from a Unity InputActionProperty.
-    /// </summary>
-    /// <typeparam name="T">The type of the value to retrieve. Must be a struct.</typeparam>
-    /// <param name="actionProperty">The InputActionProperty object containing the value.</param>
-    /// <returns>The value of type T retrieved from the InputActionProperty.</returns>
-    static public T RetrieveValueFromAction<T>(InputActionProperty actionProperty) where T : struct
+    internal struct MovementActions
     {
-        // retrive the value from the action map
-        T actionValue = actionProperty.action.ReadValue<T>();
-        //return the value
-        return actionValue;
+        public Vector2 XYaxis;
+        public bool IsattemptingBonusMovement;
+        public bool IsAttemptingSlide;
+        public MovementActions(Vector2 xYaxis, bool isattemptingBonusMovement, bool isAttemptingSlide)
+        {
+            XYaxis = xYaxis;
+            IsattemptingBonusMovement = isattemptingBonusMovement;
+            IsAttemptingSlide = isAttemptingSlide;
+        }
     }
+
+    internal enum MovementState
+    {
+        Walk, Slide, Sprint, Strafe, None
+    }
+    
 }
