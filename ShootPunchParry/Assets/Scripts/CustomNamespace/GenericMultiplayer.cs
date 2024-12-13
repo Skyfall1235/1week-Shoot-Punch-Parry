@@ -75,14 +75,6 @@ namespace SkyMatrixNamespace
         }
 
     }
-    class test
-    {
-        ServerAndClientUnityEvent test1;
-        void methodcall()
-        {
-            //test1.InvokeServerAndClientEvent();
-        }
-    }
 
     [System.Serializable]
     public class ServerAndClientUnityEvent : UnityEvent

@@ -18,7 +18,7 @@ public class BasicMovement : NetworkBehaviour
     public Vector3 FacingDirection;
     public float DotProductAllowanceForDirectionalMapping = 0f;
 
-    public bool isGrounded = false;
+    public bool IsGrounded = false;
     [Header("Debugs")]
     public bool ShowDebugs = true;
     public Color DebugCameraColor = Color.white;
@@ -27,22 +27,20 @@ public class BasicMovement : NetworkBehaviour
     public Color DebugSpecialMovement = Color.green;
 
     #region Enablisms
-    public void OnEnable()
+    public void Awake()
     {
         rb = GetComponent<Rigidbody>();
-    }
-    public void OnDisable()
-    {
-        
     }
 
     public override void OnNetworkSpawn()
     {
         base.OnNetworkSpawn();
+        
         if (!IsOwner)
         {
             //diable the controller if we arent owner
-            this.enabled = false;
+            Destroy(rb); // we do not need the rigid body for movement if we are not controlling it, the host will handle that.
+            this.enabled = false; // this object will be moved by the network if it is not by the owner
         }
     }
 
@@ -60,7 +58,7 @@ public class BasicMovement : NetworkBehaviour
 
     #endregion
 
-    internal MovementState DetermineAcccelerationType(MovementActions currentAction)
+    protected MovementState DetermineAcccelerationType(MovementActions currentAction)
     {
         Vector3 dirOfPlayerTravel = Vector3.zero;
         Vector3 DirOfCamera = FacingDirection.normalized;
@@ -82,13 +80,13 @@ public class BasicMovement : NetworkBehaviour
 
 
     //methods for moving and managing speed
-    internal void MovePlayer(MovementActions inputs, Vector3 FacingDirection)
+    protected void MovePlayer(MovementActions inputs, Vector3 FacingDirection)
     {
         //use the values we have and the direction the player is giving
     }
 
     //bonus movement is a side strafe or sprint, slide is sperate as it will interrupt these
-    internal MovementActions ConvertInputToUsableVector(InputActionProperty moveAction, InputActionProperty bonusMovement, InputActionProperty attemptSlide)
+    protected MovementActions ConvertInputToUsableVector(InputActionProperty moveAction, InputActionProperty bonusMovement, InputActionProperty attemptSlide)
     {
         Vector2 movementInput = RetrieveValueFromAction<Vector2>(moveAction);
         bool isUsingBonusMovement = RetrieveValueFromAction<bool>(bonusMovement);
@@ -117,23 +115,23 @@ public class BasicMovement : NetworkBehaviour
 
     #region Collision
 
-    internal virtual void OnCollisionEnter(Collision collision)
+    protected virtual void OnCollisionEnter(Collision collision)
     {
         //check collisions for ground
         switch (collision.gameObject.layer)
         {
-            case 6: 
-
+            case 6:
+                IsGrounded = true;
                 break;
         }
     }
-    internal virtual void OnCollisionExit(Collision collision)
+    protected virtual void OnCollisionExit(Collision collision)
     {
         //check collisions for ground
         switch (collision.gameObject.layer)
         {
-            case 6: 
-
+            case 6:
+                IsGrounded = false;
                 break;
         }
     }
@@ -158,7 +156,7 @@ public class BasicMovement : NetworkBehaviour
         }
     }
 
-    internal struct MovementActions
+    protected struct MovementActions
     {
         public Vector2 XYaxis;
         public bool IsattemptingBonusMovement;
@@ -171,9 +169,16 @@ public class BasicMovement : NetworkBehaviour
         }
     }
 
-    internal enum MovementState
+    protected enum MovementState
     {
         Walk, Slide, Sprint, Strafe, None
     }
     
+    protected enum InteractionState
+    {
+        Interaction, //for interacting with doors and UI
+        Weapon, //for shooting guns
+        Coin, //for thowing the signature coin :)
+        Melee //seperate from weapon state, this can deal damage or parry
+    }
 }
